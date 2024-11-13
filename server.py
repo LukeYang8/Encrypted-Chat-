@@ -29,11 +29,6 @@ def handle_client(client, client2):
     
     client.close()
 
-# # if user leaves then listen for another one
-# def new_client():
-#     while users == 0: 
-
-
 
 def signal_handler(sig, frame):
     print('Closing server ...')

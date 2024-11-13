@@ -7,6 +7,7 @@ from Crypto.Cipher import PKCS1_OAEP, AES
 from tkinter import scrolledtext
 from tkinter import *
 
+# details for application 
 root = Tk()
 root.title("Chat")
 root.geometry("500x600")
@@ -21,7 +22,7 @@ inputText = scrolledtext.ScrolledText(root, state=NORMAL, wrap=WORD, height=5)
 inputText.pack(fill=BOTH, expand=True)
 
 
-#
+# display message on application
 def displayMessage(message):
     displayText.config(state=NORMAL)
     displayText.insert(END, message + '\n')
@@ -52,6 +53,7 @@ def encrypt_message_aes(aesKey, message):
     ciphertext, tag = cipher_aes.encrypt_and_digest(message)
     return cipher_aes.nonce + tag + ciphertext
 
+# encrypt and send message from input
 def send_message(username, socket, aesKey):
 
     message = inputText.get("1.0", END).strip()
@@ -64,7 +66,7 @@ def send_message(username, socket, aesKey):
     socket.send(message)
     inputText.delete("1.0", END)
 
-
+# get the message from input
 def get_message():
     message = inputText.get("1.0", END).strip()
     if message == 'exit':
@@ -120,13 +122,9 @@ authenticated = False
 
 # login()
 
+# authentication
 username = ""
 while not authenticated:
-    # displayMessage("Username: ")
-    # username = inputText.bind("<Return>", lambda x: get_message())
-    # displayMessage("Password: ")
-    # password = inputText.bind("<Return>", lambda x: get_message())
-    
     username = input("Username: ")
     username = username.replace(" ", "")
     password = input("Password: ")
@@ -161,26 +159,23 @@ socket.send(aesKeyEncrypted)
 otherAesKeyEncrypted = socket.recv(1024)
 otherAesKey = myRsaCipher.decrypt(otherAesKeyEncrypted)
 
+# get other users username
+usernameMsg = encrypt_message_aes(aesKey, username.encode())
+socket.send(usernameMsg)
+otherUsername = socket.recv(1024)
+nonce = otherUsername[:16]
+tag = otherUsername[16:32]
+ciphertext = otherUsername[32:]
+cipherAes = AES.new(otherAesKey, AES.MODE_GCM, nonce=nonce)
+otherUsername = cipherAes.decrypt_and_verify(ciphertext, tag)
+
+# Start Chatting
+displayMessage(f"... You may now start chatting with {otherUsername.decode().capitalize()} ...")
 
 # Thread to allow multithreading in sending messages
 thread = threading.Thread(target=decodeMessage, args=(socket, otherAesKey))
 thread.start()
 
-# print("Connected to server2")
-# thread2 = threading.Thread(target=send_message, args=(username, socket, aesKey))
-# thread2.start()
-
-# Send messages
-# while True:
-#     send_message()
-displayMessage("... You may now start chatting ...")
 inputText.bind("<Return>", lambda x: send_message(username, socket, aesKey))
 root.mainloop()
-
-# root = Tk()
-# root.title("Chat")
-# root.geometry("500x700")  
-# displayText = scrolledtext.ScrolledText(root, state=DISABLED, wrap=WORD)
-# displayText.pack(fill=BOTH, expand=True)  
-# root.mainloop()
 
